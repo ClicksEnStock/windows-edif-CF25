@@ -42,13 +42,13 @@ _inline void GenerateEvent(LPRDATA,int);	// Generate event
 _inline void PushEvent(LPRDATA,int);		// Push event
 _inline void DestroyObject(LPRDATA);		// Destroy the object
 _inline void ReHandleObject(LPRDATA);		// Start calling HandleRunObject again
-_inline char* GetStringSpace(LPRDATA,int);	// Get temporary string space from MMF
-_inline char* GetStringSpaceOld(LPRDATA,int);	// Get temporary string space from MMF (pre-MMF1.5)
+_inline TCHAR* GetStringSpace(LPRDATA,int);	// Get temporary string space from MMF
+_inline TCHAR* GetStringSpaceOld(LPRDATA,int);	// Get temporary string space from MMF (pre-MMF1.5)
 _inline int GetActionLoopCount(LPRDATA);	// Number of times action called by MMF for PARAM_OBJECT (starts at 0)
 _inline bool IsLastActionLoop(LPRDATA);		// Is last time action is being called by MMF for PARAM_OBJECT
 _inline long GetTimer();					// Timer count, 100 per second
-_inline char UpperChar(char);				// Convert a char to uppercase
-_inline char LowerChar(char);				// Convert a char to lowercase
+_inline TCHAR UpperChar(TCHAR);				// Convert a TCHAR to uppercase
+_inline TCHAR LowerChar(TCHAR);				// Convert a TCHAR to lowercase
 _inline int GetDistance(int,int,int,int);	// Distance between two points
 _inline int GetAngle(int,int,int,int);		// Angle between two points
 _inline int RotateToward(int,int,int,int);	// Rotate towards direction/angle
@@ -266,14 +266,14 @@ _inline void ReHandleObject(LPRDATA rdPtr)
 // GetStringSpace:  gets some string space for an expression to return a string with.
 // returns a pointer to your new memory.  MMF will automatically free this memory soon after your expression routine finishes
 // NO LIMIT - BUILD 108 and up
-_inline char* GetStringSpace(LPRDATA rdPtr, int size)
-{	return (char *)callRunTimeFunction(rdPtr,RFUNCTION_GETSTRINGSPACE_EX,0,size); }
+_inline TCHAR* GetStringSpace(LPRDATA rdPtr, int size)
+{	return (TCHAR *)callRunTimeFunction(rdPtr,RFUNCTION_GETSTRINGSPACE_EX,0,size*sizeof(TCHAR)); }
 
 // GetStringSpaceOld:  gets some string space for an expression to return a string with.
 // returns a pointer to your new memory.  MMF will automatically free this memory soon after your expression routine finishes
 // LIMITED TO 32KB - but compatible with all builds
-_inline char* GetStringSpaceOld(LPRDATA rdPtr, int size)
-{	return (char *)callRunTimeFunction(rdPtr,RFUNCTION_GETSTRINGSPACE,size,0); }
+_inline TCHAR* GetStringSpaceOld(LPRDATA rdPtr, int size)
+{	return (TCHAR *)callRunTimeFunction(rdPtr,RFUNCTION_GETSTRINGSPACE,size*sizeof(TCHAR),0); }
 
 // GetActionLoopCount(rdPtr): if you use PARAM_OBJECT as your first parameter, MMF will repeat your action
 // for every one of those objects that met the event.  This will return the index of the action repetition
@@ -319,7 +319,7 @@ _inline long GetTimer()
 
 
 // Convert character to uppercase
-_inline char UpperChar(char ch)
+_inline TCHAR UpperChar(TCHAR ch)
 {
 	// If in the range of a lowercase char
 	if ((ch > 96) && (ch < 123))
@@ -329,7 +329,7 @@ _inline char UpperChar(char ch)
 }
 
 // Convert a character to lowercase
-_inline char LowerChar(char ch)
+_inline TCHAR LowerChar(TCHAR ch)
 {
 	// If in the range of an uppercase char
 	if ((ch > 64) && (ch < 91))

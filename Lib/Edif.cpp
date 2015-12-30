@@ -120,7 +120,9 @@ void Edif::Init(mv * _far mV, LPEDATA edPtr)
 }
 
 void Edif::Free(mv * _far mV)
-{
+{   
+	/*delete ::SDK;
+	::SDK = NULL;*/
 }
 
 void Edif::Free(LPEDATA edPtr)
@@ -204,15 +206,16 @@ int Edif::Init(mv _far * mV)
         return -1;
     }
 
-	static Edif::SDK gSDK (mV, *json);
-    ::SDK = &gSDK;
+    //::SDK = new Edif::SDK(mV, *json); workaround from LB
+	static Edif::SDK gSDK(mV, *json);
+	::SDK = &gSDK;
     return 0;	// no error
 }
 
 Edif::SDK::SDK(mv * mV, json_value &_json) : json (_json)
 {
 	this->mV = mV;
-
+	Icon = nullptr;
 #ifndef RUN_ONLY
     Icon = new cSurface;
     if(mV->mvImgFilterMgr)
@@ -420,99 +423,100 @@ Edif::SDK::~SDK()
     delete [] ConditionJumps;
     delete [] ExpressionJumps;
 
-#ifndef RUN_ONLY
-	delete Icon;
-#endif
+	if (Icon != nullptr)
+	{
+		delete Icon;
+	}
 }
 
 int ActionOrCondition(vector<short> &FloatFlags, LPEVENTINFOS2 Info, void * Function, int ID, LPRDATA rdPtr, long param1, long param2)
 {
-    int * Parameters;
-    int ParameterCount;
+	int * Parameters;
+	int ParameterCount;
 	bool Cast = true;
 
-    {   Info = GetEventInformations(Info, ID);
+	{   Info = GetEventInformations(Info, ID);
 
-        ParameterCount = Info->infos.nParams;
-        Parameters = (int *) alloca(sizeof(int) * ParameterCount);
+	ParameterCount = Info->infos.nParams;
+	Parameters = (int *)alloca(sizeof(int)* ParameterCount);
 
-        for(int i = 0; i < ParameterCount; ++ i)
-        {
-            switch(EVINFO2_PARAM(Info, i))
-            {
-            case PARAM_EXPRESSION:
+	for (int i = 0; i < ParameterCount; ++i)
+	{
+		switch (EVINFO2_PARAM(Info, i))
+		{
+		case PARAM_EXPRESSION:
 
-                if((FloatFlags[ID] & (1 << i)) != 0)
-                {
-                    Parameters[i] = CNC_GetFloatParameter(rdPtr);
-                    break;
-                }
-
-                Parameters[i] = CNC_GetIntParameter(rdPtr);
-                break;
-
-            case PARAM_EXPSTRING:
-            case PARAM_FILENAME:
-
-                Parameters[i] = CNC_GetStringParameter(rdPtr);
-                break;
-
-			case PARAM_COMPARAISON: //int must be returned
-			case PARAM_CMPSTRING: //char * must be returned
-
-				Cast = false;
+			if ((FloatFlags[ID] & (1 << i)) != 0)
+			{
+				Parameters[i] = CNC_GetFloatParameter(rdPtr);
 				break;
+			}
 
-            default:
+			Parameters[i] = CNC_GetIntParameter(rdPtr);
+			break;
 
-                Parameters[i] = CNC_GetParameter(rdPtr);
-                break;
-            }
-        }
-    }
+		case PARAM_EXPSTRING:
+		case PARAM_FILENAME:
 
-    void * Extension = rdPtr->pExtension;
+			Parameters[i] = CNC_GetStringParameter(rdPtr);
+			break;
 
-    int Result;
+		case PARAM_COMPARAISON: //int must be returned
+		case PARAM_CMPSTRING: //char * must be returned
 
-    __asm
-    {
-        pushad
+			Cast = false;
+			break;
 
-        mov ecx, ParameterCount
-        
-        cmp ecx, 0
-        je CallNow
+		default:
 
-        mov edx, Parameters
+			Parameters[i] = CNC_GetParameter(rdPtr);
+			break;
+		}
+	}
+	}
 
-        mov ebx, ecx
-        shl ebx, 2
+	void * Extension = rdPtr->pExtension;
 
-        add edx, ebx
-        sub edx, 4
+	int Result;
 
-        PushLoop:
+	__asm
+	{
+		pushad
 
-            push [edx]
-            sub edx, 4
+			mov ecx, ParameterCount
 
-            dec ecx
+			cmp ecx, 0
+			je CallNow
 
-            cmp ecx, 0
-            jne PushLoop
+			mov edx, Parameters
 
-        CallNow:
+			mov ebx, ecx
+			shl ebx, 2
 
-        mov ecx, Extension
-        call Function
-            
-        mov Result, eax
+			add edx, ebx
+			sub edx, 4
 
-        popad
-    }
+		PushLoop:
 
-    return Cast ? (char)Result : Result;
+		push[edx]
+			sub edx, 4
+
+			dec ecx
+
+			cmp ecx, 0
+			jne PushLoop
+
+		CallNow :
+
+		mov ecx, Extension
+			call Function
+
+			mov Result, eax
+
+			popad
+	}
+
+	return Cast ? (char)Result : Result;
 }
 
 HMENU Edif::LoadMenuJSON(int BaseID, const json_value &Source, HMENU Parent)
@@ -621,7 +625,7 @@ long __stdcall Edif::Expression(LPRDATA rdPtr, long param)
     {   LPEVENTINFOS2 Infos = GetEventInformations((LPEVENTINFOS2) &::SDK->ExpressionInfos[0], ID);
 
         ParameterCount = Infos->infos.nParams;
-        Parameters = (int *) alloca(sizeof(int) * ParameterCount);
+        Parameters = (int *) _malloca(sizeof(int) * ParameterCount);
 
         for(int i = 0; i < ParameterCount; ++ i)
         {
@@ -830,7 +834,7 @@ static void GetSiblingPath (TCHAR * Buffer, const TCHAR * FileExtension)
 void Edif::GetSiblingPath (TCHAR * Buffer, const TCHAR * FileExtension)
 {
     TCHAR * Extension = (TCHAR *)
-        alloca ((_tcslen (FileExtension) + _tcslen (LanguageCode) + 2) * sizeof(TCHAR));
+        _malloca ((_tcslen (FileExtension) + _tcslen (LanguageCode) + 2) * sizeof(TCHAR));
 
     _tcscpy (Extension, LanguageCode);
     _tcscat (Extension, _T ("."));
